@@ -1,25 +1,49 @@
 from fastapi import FastAPI 
-import startup
-from users.index import users_router
-from service_providers.index import service_providers_router
-from fastapi.middleware.cors import CORSMiddleware
-from hospitals.index import hospitals_rounter
+from models import HVACDetials
+from pymongo import MongoClient
+import datetime
 
-app = FastAPI() 
-print("############################ Server Started ######################")
+app = FastAPI()
 
-origins = [
-    "*"
-]
+client = MongoClient()
+target_db = client.hvac_automation
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+@app.post("/add_data")
+async def add_details(body : HVACDetials):
+    try: 
+        details = body.dict() 
+        collection = target_db.people_count_data
+        details['timestamp'] = datetime.datetime.now()
+        collection.insert(details)
+        return {
+            "status": 200,
+            "data" : [],
+            "message" : "Data Registered"
+        }
+    except: 
+        return {
+            "status" : 400,
+            "data" : [],
+            "message" : "Some Error Occured"
+        } 
+    
 
-app.include_router(users_router)
-app.include_router(service_providers_router)
-app.include_router(hospitals_rounter)
+@app.post("/get_data") 
+def get_details(): 
+    try: 
+        collection = target_db.people_count_data
+        data = []
+        for i in collection.find({}, {'_id': 0}):
+            data.append(i)
+        print(data)
+        return {
+            "status": 400,
+            "data": data,
+            "message": "Data Found"
+        }
+    except: 
+        return {
+            "status": 400,
+            "data": [],
+            "message": "Some Error Occured"
+        }
